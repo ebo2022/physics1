@@ -31,14 +31,34 @@ public class ResultMenu {
             formPanel.add(new JLabel("explanation"), c);
         }
 
-        this.measurement("sat. vapor pressure (Pa)", "the estimated maximum pressure water vapor could exert based on temperature", true, "P_{sat}=610.94e^{\\frac{17.625T_c}{T_c+243.04}}", results.airDensity().pSat(), 2, c, formPanel);
-        this.measurement("vapor partial pressure (Pa)", "the atmospheric pressure contribution from water vapor calculated from relative humidity", true, "P_v=H_rP_{sat}", results.airDensity().pV(), 2, c, formPanel);
-        this.measurement("dry air partial pressure (Pa)", "the atmospheric pressure contribution from everything else", true, "P_d=P-P_v", results.airDensity().pD(), 2, c, formPanel);
-        this.measurement("air density (kg/m^3)", "the predicted air density from summing dry and moist densities from ideal gas law", true, "\\rho=\\frac{P_d}{R_dT}+\\frac{P_v}{R_vT}", results.airDensity().density(), 2, c, formPanel);
-        this.measurement("initial speed 1st guess (m/s)", "the rocket speed calculated from normal kinematics (no drag) and first speed guess for drag-based solver", true, "v_0=\\frac{gt}{2\\sin\\theta}", results.guessSpeed(), 2, c, formPanel);
-        this.measurement("range 1st guess (m)", "the rocket range calculated from normal kinematics (no drag)", true, "x=(v_0\\cos\\theta)t", results.guessRange(), 2, c, formPanel);
-        this.measurement("initial speed refined guess (m/s)", "the new rocket speed from drag solver", false, "secant method error solver", results.refinedSpeed(), 2, c, formPanel);
-        this.measurement("range refined guess (m)", "the new rocket firing range from drag solver", false, "secant method error solver", results.refinedRange(), 2, c, formPanel);
+        this.measurement(
+                "sat. vapor pressure (Pa)",
+                "the estimated maximum pressure water vapor could exert based on temperature",
+                true, "P_{sat}=610.94e^{\\frac{17.625T_c}{T_c+243.04}}", results.airDensity().pSat(), 2, c, formPanel);
+        this.measurement(
+                "vapor partial pressure (Pa)",
+                "the atmospheric pressure contribution from water vapor calculated from relative humidity", true, "P_v=H_rP_{sat}", results.airDensity().pV(), 2, c, formPanel);
+        this.measurement(
+                "dry air partial pressure (Pa)",
+                "the atmospheric pressure contribution from everything else",
+                true, "P_d=P-P_v", results.airDensity().pD(), 2, c, formPanel);
+        this.measurement(
+                "air density (kg/m^3)",
+                "the predicted air density from summing dry and moist densities from ideal gas law",
+                true, "\\rho=\\frac{P_d}{R_dT}+\\frac{P_v}{R_vT}", results.airDensity().density(), 2, c, formPanel);
+        this.measurement(
+                "initial speed 1st guess (m/s)",
+                "the rocket speed calculated from normal kinematics (no drag) and first speed guess for drag-based solver",
+                true, "v_0=\\frac{gt}{2\\sin\\theta}", results.guessSpeed(), 2, c, formPanel);
+        this.measurement("range 1st guess (m)",
+                "the rocket range calculated from normal kinematics (no drag)",
+                true, "x=(v_0\\cos\\theta)t", results.guessRange(), 2, c, formPanel);
+        this.measurement("initial speed refined guess (m/s)",
+                "the new rocket speed from drag solver", false,
+                "secant method error solver", results.refinedSpeed(), 2, c, formPanel);
+        this.measurement("range refined guess (m)",
+                "the new rocket firing range from drag solver",
+                false, "secant method error solver", results.refinedRange(), 2, c, formPanel);
         //this.measurement("time error (%)", "the percent error b/w simulated and experimental time; should be negligible ideally", true, "PE=\\frac{t_{sim}-t_{exp}}{t_{exp}}\\times 100", results.timePercentError(), 5, c, formPanel);
         frame.add(formPanel, "Center");
         frame.setVisible(true);

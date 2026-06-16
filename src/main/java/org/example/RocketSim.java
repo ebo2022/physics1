@@ -2,18 +2,25 @@ package org.example;
 
 import java.util.Random;
 
+/**
+ * MAIN CLASS FOR ROCKET SIMULATION
+ */
 public class RocketSim {
-    public static final double g = 9.81;
-    private final AirDensity.Result airDensity;
-    private final double theta, tExpected, dt, m, Cd, A;
-    private final int iterations;
-    private final Random random = new Random();
+    public static final double g = 9.81; // little g
+    private final AirDensity.Result airDensity; // air density
+    private final double theta, // angle
+            tExpected, // experimental time
+            dt, // simulation time step
+            m, // mass
+            Cd, // drag coefficient
+            A; // cross-sectional area
+    private final int iterations; // error solver iterations
 
     public RocketSim(double theta, double tExpected,
                      double dt, double m,
                      double Cd, double A, AirDensity.Result airDensity,
                      int iterations) {
-        this.theta = Math.toRadians(theta);
+        this.theta = Math.toRadians(theta); // input is in degrees, need radians
         this.tExpected = tExpected;
         this.dt = dt;
         this.m = m;
@@ -23,22 +30,52 @@ public class RocketSim {
         this.iterations = iterations;
     }
 
+    /**
+     * runs a number of simulated trajectories to fit to the experimental time
+     * <p><i>it is assumed time for vertical launch = time for angled launch which isn't actually true</i></p>
+     * @return fitted results from the simulation
+     */
     public Result run() {
+
+        // the speed as would be calculated from the "normal" kinematic derivation
+        // it also happens to be a good enough first guess for the error solver
         double guessSpeed = 9.81 * this.tExpected / ((double)2.0F * Math.sin(this.theta));
+
+        // range calculated based on speed above; really just for results reporting, doesn't affect the simulation
         double guessRange = guessSpeed * Math.cos(this.theta) * this.tExpected;
+
+        // 2 guesses
         double guess1 = guessSpeed;
-        double guess2 = 1.1 * guessSpeed;
+        double guess2 = 1.1 * guessSpeed; // slightly perturb the guess speed for initial comparison
+
+        // initialize with two scenario trajectories
         SingleResult result1 = this.runSingle(guessSpeed);
         SingleResult result2 = this.runSingle(guess2);
         SingleResult bestResult = result2;
+
+        // the speed that currently best fits experimental time (i.e minimum error)
         double bestGuessSpeed = guess2;
+
+        // acceptable amount of error to stop the simulation
         double tolerance = 1.0E-4;
+
+        // flag for if the simulation loop because error went below tolerance
         boolean success = false;
 
-        for(int i = 0; i < this.iterations && !(Math.abs(result2.error - result1.error) < 1.0E-8); ++i) {
+        // MAIN ITERATION LOOP - repeatedly refines trajectory and minimizes error
+        for(int i = 0; i < this.iterations; ++i) {
+
+            // no point in keeping the loop going if error is basically zero
+            if (Math.abs(result2.error - result1.error) < 1.0E-8) break;
+
+            // secant-based approximation from current errors
             double nextGuess = guess2 - result2.error * (guess2 - guess1) / (result2.error - result1.error);
+
+            // run a simulation with the new guess
             SingleResult nextResult = this.runSingle(nextGuess);
-            if (Math.abs(nextResult.error) < tolerance) {
+
+            if (Math.abs(nextResult.error) < tolerance) { // check if error is below the tolerance
+                // update results to show new best and 2nd-best guesses
                 bestResult = nextResult;
                 bestGuessSpeed = nextGuess;
                 success = true;
@@ -59,27 +96,54 @@ public class RocketSim {
         return new Result(this.airDensity, guessSpeed, guessRange, bestGuessSpeed, bestResult.range);
     }
 
+    /**
+     * calculates instantaneous acceleration in horizontal direction
+     *
+     * @param vx current velocity in x-direction (for drag force)
+     * @param vy current velocity in y-direction (for drag force)
+     * @return new x acceleration for the next time interval
+     */
     private double ax(double vx, double vy) {
         double v = Math.sqrt(vx * vx + vy * vy);
-        return (double)-0.5F * this.airDensity.density() * this.Cd * this.A / this.m * v * vx;
+        // drag will affect horizontal velocity unlike an ideal model; isolate just the horizontal vector component
+        return -0.5 * this.airDensity.density() * this.Cd * this.A / this.m * v * vx;
     }
 
+    /**
+     * calculates instantaneous acceleration in vertical direction
+     *
+     * @param vx current velocity in x-direction (for drag force)
+     * @param vy current velocity in y-direction (for drag force)
+     * @return new y acceleration for the next time interval
+     */
     private double ay(double vx, double vy) {
         double v = Math.sqrt(vx * vx + vy * vy);
-        return -9.81 - (double)0.5F * this.airDensity.density() * this.Cd * this.A / this.m * v * vy;
+        // two forces: gravity as a baseline plus any drag in the vertical direction
+        return -g - 0.5 * this.airDensity.density() * this.Cd * this.A / this.m * v * vy;
     }
 
+    /**
+     * simulates a single rocket trajectory using RK4 (runge-kutta) numeric integration
+     *
+     * @param v0 speed to run simulation based on
+     * @return record of relevant simulation results
+     */
     public SingleResult runSingle(double v0) {
-        double x = (double)0.0F;
-        double y = (double)0.0F;
-        double t = (double)0.0F;
+        // simulation parameters; all are they are labeled
+        double x = 0, y = 0, t = 0;
+
+        // keep previous x and y values to interpolate at end
         double lastX = x;
         double lastY = y;
         double vx = v0 * Math.cos(this.theta);
 
-        for(double vy = v0 * Math.sin(this.theta); y >= (double)0.0F; t += this.dt) {
+        for(double vy = v0 * Math.sin(this.theta); y >= 0; t += this.dt) {
             lastX = x;
             lastY = y;
+
+            // runge-kutta 4 integration; this is equivalent in function to Euler's method
+            // but takes a weighted average of derivative values instead for much greater accuracy
+            // see https://rosettacode.org/wiki/Runge-Kutta_method#Java for what the code represents mathematically
             double k1vx = this.ax(vx, vy) * this.dt;
             double k1vy = this.ay(vx, vy) * this.dt;
             double k1x = vx * this.dt;
@@ -102,6 +166,7 @@ public class RocketSim {
             y += (k1y + (double)2.0F * k2y + (double)2.0F * k3y + k4y) / (double)6.0F;
         }
 
+        // interpolate between last two positions to better capture where rocket hits ground
         double a = lastY / (lastY - y);
         double finalX = lastX + a * (x - lastX);
         return new SingleResult(t, finalX, t - this.tExpected);
